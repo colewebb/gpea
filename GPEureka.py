@@ -6,7 +6,7 @@ import numpy as np
 
 class csvWriter():
     def __init__(self):
-        self.path = "~/pics/data.csv"
+        self.path = "./data.csv"
         if not os.path.exists(self.path):
             f = self.fileHandle()
             self.write(["Timestamp", "Current White Pixels", "Old White Pixels", "Pixel Count Delta", "Daily RGR", "Hourly RGR"])
@@ -56,7 +56,7 @@ class gpeureka():
 
     def capture(self):
         now = datetime.datetime.now()
-        name = str(now) + ".png"
+        name = str(now.year) + str(now.month) + str(now.day) + str(now.hour) + str(now.minute) + ".png"
         os.system("raspistill -o '" + name + "'")
         self.currentImage = Image.open(name)
 
@@ -90,7 +90,8 @@ class gpeureka():
 
     def main(self):
         try:
-            self.oldImage = Image.open(max(iglob("/home/pi/pics/*.png"), key=os.path.getctime))
+            old = datetime.datetime.now() - datetime.timedelta(days=1)
+            self.oldImage = Image.open(str(old.year) + str(old.month) + str(old.day) + str(old.hour) + str(old.minute) + ".png")
         except:
             self.capture()
             return
@@ -98,11 +99,8 @@ class gpeureka():
         self.analyze()
         self.writer.write([self.time, self.currentWhitePixels, self.oldWhitePixels, self.pixelDelta, self.dailyRGR, self.hourlyRGR])
         self.cleanup()
+        self.backup()
 
 if __name__ == "__main__":
     gpea = gpeureka()
     gpea.main()
-
-# TODO: upload files to box by rsync
-# TODO: log timing
-# TODO: set brightness
