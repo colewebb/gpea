@@ -6,7 +6,7 @@ import numpy as np
 
 class csvWriter():
     def __init__(self):
-        self.path = "./data.csv"
+        self.path = "~/pics/data.csv"
         if not os.path.exists(self.path):
             f = self.fileHandle()
             self.write(["Timestamp", "Current White Pixels", "Old White Pixels", "Pixel Count Delta", "Daily RGR", "Hourly RGR"])
@@ -75,6 +75,19 @@ class gpeureka():
         self.dailyRGR = np.log(float(self.currentWhitePixels)/self.oldWhitePixels)
         self.hourlyRGR = np.log(float(self.currentWhitePixels)/self.oldWhitePixels)/24
 
+    def cleanup(self):
+        fileList = os.listdir("./")
+        jpegs = []
+        for f in fileList:
+            if f.endswith(".jpg"):
+                jpegs.append(f)
+        if len(jpegs) >= 168:
+            oldestFile = min(jpegs, key=os.path.getctime)
+            os.remove(os.path.abspath(oldestFile))
+
+    def backup(self):
+        os.system("rclone copy ~/pics/ 'pi1:CPL Lab Group Folder/Cole/Pi2' -v")
+
     def main(self):
         try:
             self.oldImage = Image.open(max(iglob("/home/pi/pics/*.png"), key=os.path.getctime))
@@ -84,12 +97,12 @@ class gpeureka():
         self.capture()
         self.analyze()
         self.writer.write([self.time, self.currentWhitePixels, self.oldWhitePixels, self.pixelDelta, self.dailyRGR, self.hourlyRGR])
+        self.cleanup()
 
 if __name__ == "__main__":
     gpea = gpeureka()
     gpea.main()
 
-# TODO: remove old images
 # TODO: upload files to box by rsync
 # TODO: log timing
 # TODO: set brightness
