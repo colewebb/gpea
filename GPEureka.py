@@ -92,3 +92,4 @@ if __name__ == "__main__":
 # TODO: remove old images
 # TODO: upload files to box by rsync
 # TODO: log timing
+# TODO: set brightness
