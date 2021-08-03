@@ -57,7 +57,7 @@ class gpeureka():
     def capture(self):
         now = datetime.datetime.now()
         name = str(now.year) + str(now.month) + str(now.day) + str(now.hour) + str(now.minute) + ".png"
-        os.system("raspistill -o '" + name + "'")
+        os.system("raspistill -br 50 -o '" + name + "'")
         self.currentImage = Image.open(name)
 
     def analyze(self):
@@ -94,6 +94,7 @@ class gpeureka():
             self.oldImage = Image.open(str(old.year) + str(old.month) + str(old.day) + str(old.hour) + str(old.minute) + ".png")
         except:
             self.capture()
+            self.backup()
             return
         self.capture()
         self.analyze()
