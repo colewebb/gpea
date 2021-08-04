@@ -85,10 +85,18 @@ class gpeureka():
             oldestFile = min(jpegs, key=os.path.getctime)
             os.remove(os.path.abspath(oldestFile))
 
+    def logger(self, text, time):
+        log = open("./" + time + ".log", 'a')
+        log.write(text)
+        log.close()
+
+        
     def backup(self):
         os.system("rclone copy ~/pics/ 'pi1:CPL Lab Group Folder/Cole/Pi2' -v")
 
     def main(self):
+        logTime = datetime.datetime.now()
+        logTime = str(logTime.year) + str(logTime.month) + str(logTime.day) + str(logTime.hour) + str(logTime.minute)
         try:
             old = datetime.datetime.now() - datetime.timedelta(days=1)
             self.oldImage = Image.open(str(old.year) + str(old.month) + str(old.day) + str(old.hour) + str(old.minute) + ".png")
