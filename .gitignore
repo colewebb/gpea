@@ -2,3 +2,6 @@
 *.png
 *.pkl
 *.psd
+*.docx
+*.ignore.py
+__pycache__
