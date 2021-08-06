@@ -49,7 +49,7 @@ class gpeureka():
         self.pixelDelta = 0
         self.dailyRGR = 0
         self.hourlyRGR = 0
-        self.threshold = 110
+        self.threshold = 170
         self.writer = csvWriter()
         self.timer = timer()
         self.time = datetime.datetime.now()
@@ -61,7 +61,7 @@ class gpeureka():
         self.currentImage = Image.open(name)
 
     def analyze(self):
-        self.currentImage = np.array(self.currentImage)
+        self.currentImage = np.array(self.currentImage.crop((850, 150, 2800, 2100)))
         self.oldImage = np.array(self.oldImage)
         for i in self.currentImage:
             for j in i:
@@ -85,10 +85,18 @@ class gpeureka():
             oldestFile = min(jpegs, key=os.path.getctime)
             os.remove(os.path.abspath(oldestFile))
 
+    def logger(self, text, time):
+        log = open("./" + time + ".log", 'a')
+        log.write(text)
+        log.close()
+
+        
     def backup(self):
         os.system("rclone copy ~/pics/ 'pi1:CPL Lab Group Folder/Cole/Pi2' -v")
 
     def main(self):
+        logTime = datetime.datetime.now()
+        logTime = str(logTime.year) + str(logTime.month) + str(logTime.day) + str(logTime.hour) + str(logTime.minute)
         try:
             old = datetime.datetime.now() - datetime.timedelta(days=1)
             self.oldImage = Image.open(str(old.year) + str(old.month) + str(old.day) + str(old.hour) + str(old.minute) + ".png")
