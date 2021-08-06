@@ -62,7 +62,7 @@ class gpeureka():
 
     def analyze(self):
         self.currentImage = np.array(self.currentImage.crop((850, 150, 2800, 2100)))
-        self.oldImage = np.array(self.oldImage)
+        self.oldImage = np.array(self.oldImage.crop((850, 150, 2800, 2100)))
         for i in self.currentImage:
             for j in i:
                 if (int(j[0]) + int(j[1]) + int(j[2]))/3 > self.threshold:
