@@ -4,5 +4,7 @@
 *.psd
 *.docx
 *.ignore.py
+*.csv
+*.xlsx
 __pycache__
 pictures

@@ -3,6 +3,8 @@ import datetime
 from glob import iglob
 from PIL import Image
 import numpy as np
+# import pandas as pd
+# from matplotlib import pyplot
 
 class csvWriter():
     def __init__(self):
@@ -18,8 +20,8 @@ class csvWriter():
     def format(self, data):
         toReturn = ""
         for i in data:
-            toReturn += (str(i) + ", ")
-        return toReturn[:-2]
+            toReturn += (str(i) + ",")
+        return toReturn[:-1]
     
     def write(self, data):
         f = self.fileHandle()
@@ -74,6 +76,15 @@ class gpeureka():
         self.pixelDelta = self.currentWhitePixels - self.oldWhitePixels
         self.dailyRGR = np.log(float(self.currentWhitePixels)/self.oldWhitePixels)
         self.hourlyRGR = np.log(float(self.currentWhitePixels)/self.oldWhitePixels)/24
+
+    # def graph(self):
+    #     os.chdir("C:/Users/Admin/Downloads")
+    #     data = pd.read_csv("./data.csv",delimiter=", ", header=0)
+    #     pyplot.plot(data['Timestamp'][78:len(data)], data['DailyRGR'][78:len(data)])
+    #     pyplot.xlabel("Time")
+    #     pyplot.ylabel("Daily RGR (New pixels per old pixel per day)")
+    #     pyplot.savefig("test", dpi=300, format="png")
+    #     os.rename("./test", "./test.png")
 
     def cleanup(self):
         fileList = os.listdir("./")
