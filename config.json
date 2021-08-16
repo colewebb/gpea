@@ -1,0 +1,10 @@
+{
+    "threshold": 140,
+    "crop": false,
+    "crop-left-x": 0,
+    "crop-left-y": 0,
+    "crop-right-x": 0,
+    "crop-right-y": 0,
+    "switcher-enabled": false,
+    "save-analyzed-images": false
+}
