@@ -49,7 +49,7 @@ class gpeureka():
         self.pixelDelta = 0
         self.dailyRGR = 0
         self.hourlyRGR = 0
-        self.threshold = 170
+        self.threshold = 140
         self.writer = csvWriter()
         self.timer = timer()
         self.time = datetime.datetime.now()
@@ -61,8 +61,8 @@ class gpeureka():
         self.currentImage = Image.open(name)
 
     def analyze(self):
-        self.currentImage = np.array(self.currentImage.crop((850, 150, 2800, 2100)))
-        self.oldImage = np.array(self.oldImage.crop((850, 150, 2800, 2100)))
+        self.currentImage = np.array(self.currentImage)
+        self.oldImage = np.array(self.oldImage)
         for i in self.currentImage:
             for j in i:
                 if (int(j[0]) + int(j[1]) + int(j[2]))/3 > self.threshold:
