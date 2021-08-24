@@ -4,6 +4,7 @@ from glob import iglob
 from PIL import Image
 import numpy as np
 import json
+import subprocess
 # import pandas as pd
 # from matplotlib import pyplot
 
@@ -57,10 +58,13 @@ class gpeureka():
         self.timer = timer()
         self.time = datetime.datetime.now()
 
+    def runner(self, exec):
+        return subprocess.run(exec, shell=True, capture_output=True, text=True)
+
     def capture(self):
         now = datetime.datetime.now()
         name = str(now.year) + str(now.month) + str(now.day) + str(now.hour) + str(now.minute) + ".png"
-        os.system("raspistill -br 50 -o '" + name + "'")
+        self.runner("raspistill -br 50 -o '" + name + "'")
         self.currentImage = Image.open(name)
 
     def analyze(self):
@@ -104,7 +108,7 @@ class gpeureka():
 
         
     def backup(self):
-        os.system("rclone copy ~/pics/ 'pi1:CPL Lab Group Folder/Cole/Pi2' -v")
+        self.runner("rclone copy ~/pics/ 'pi1:CPL Lab Group Folder/Cole/Pi2' -v")
 
     def main(self):
         logTime = datetime.datetime.now()
