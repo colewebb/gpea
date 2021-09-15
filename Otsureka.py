@@ -1,6 +1,6 @@
 from os import chdir, listdir, remove, path
 import datetime
-from .tools import csvWriter, timer, runner, config
+from tools import csvWriter, timer, runner, config
 import cv2 as cv
 import numpy as np
 
@@ -10,6 +10,7 @@ class otsureka:
      - self.currentImage: 
     """
     def __init__(self):
+        self.cfg = config(f="/home/pi/Documents/gpea/config.json").config
         chdir("/home/pi/pics")
         self.currentImage = None
         self.oldImage = None
@@ -19,7 +20,6 @@ class otsureka:
         self.hourlyRGR = 0
         self.writer = csvWriter()
         self.time = datetime.datetime.now()
-        self.cfg = config(f="/home/pi/Documents/gpea/config.json").config
 
     def capture(self):
         name = str(self.time.month) + "-" + str(self.time.day) + "-" + str(self.time.year) + " " + str(self.time.hour) + ":" + str(self.time.minute) + ".png"
@@ -27,8 +27,8 @@ class otsureka:
         self.currentImage = cv.imread(name)
 
     def analyze(self):
-        self.currentImage = self.currentImage[self.cfg["crop-left-x"]:self.cfg["crop-right-x"], self.cfg["crop-left-y"]:self.cfg["crop-right-y"]]
-        self.oldImage = self.oldImage[self.cfg["crop-left-x"]:self.cfg["crop-right-x"], self.cfg["crop-left-y"]:self.cfg["crop-right-y"]]
+        self.currentImage = cv.cvtColor(self.currentImage[500:2000, 500:2400], cv.COLOR_BGR2GRAY)
+        self.oldImage = cv.cvtColor(self.oldImage[500:2000, 500:2400], cv.COLOR_BGR2GRAY)
         self.currentImage = cv.threshold(self.currentImage, 0, 1, cv.THRESH_OTSU)[1]
         self.oldImage = cv.threshold(self.oldImage, 0, 1, cv.THRESH_OTSU)[1]
         for i in range(len(self.currentImage)):
@@ -59,21 +59,22 @@ class otsureka:
         log.close()
 
     def backup(self):
-        self.runner("rclone copy ~/pics/ 'pi1:CPL Lab Group Folder/Cole/Pi2' -v")
+        runner("rclone copy ~/pics/ 'pi1:CPL Lab Group Folder/Cole/Pi5' -v")
 
     def main(self):
-        try:
-            old = datetime.datetime.now() - datetime.timedelta(days=1)
-            self.oldImage = cv.imread(str(old.month) + "-" + str(old.day) + "-" + str(old.year) + " " + str(old.hour) + ":" + str(old.minute) + ".png")
-        except:
+        old = datetime.datetime.now() - datetime.timedelta(days=1)
+        self.oldImage = cv.imread(str(old.month) + "-" + str(old.day) + "-" + str(old.year) + " " + str(old.hour) + ":" + str(old.minute) + ".png")
+        if self.oldImage is None:
+            print("Exception")
             self.capture()
             self.backup()
             return
-        self.capture()
-        self.analyze()
-        self.writer.write([self.time, self.currentWhitePixels, self.oldWhitePixels, self.pixelDelta, self.dailyRGR, self.hourlyRGR])
-        self.cleanup()
-        self.backup()
+        else:
+            self.capture()
+            self.analyze()
+            self.writer.write([self.time, self.currentWhitePixels, self.oldWhitePixels, self.pixelDelta, self.dailyRGR, self.hourlyRGR])
+            self.cleanup()
+            self.backup()
 
 if __name__ == "__main__":
     otsureka = otsureka()

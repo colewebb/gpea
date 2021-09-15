@@ -42,6 +42,6 @@ class config():
     def __init__(self, f="./config.json"):
         self.config = json.load(open(f))
 
-def runner(exec):
-    return subprocess.run(exec, shell=True, capture_output=True, text=True)
+def runner(execute):
+    return subprocess.run(execute, shell=True, capture_output=True, text=True)
 
