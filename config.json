@@ -1,10 +1,7 @@
 {
-    "threshold": 140,
-    "crop": false,
-    "crop-left-x": 0,
-    "crop-left-y": 0,
-    "crop-right-x": 0,
-    "crop-right-y": 0,
-    "switcher-enabled": false,
-    "save-analyzed-images": false
+    "crop": true,
+    "crop-left-x": 500,
+    "crop-left-y": 500,
+    "crop-right-x": 2400,
+    "crop-right-y": 2000
 }

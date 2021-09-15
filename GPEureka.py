@@ -82,15 +82,6 @@ class gpeureka():
         self.dailyRGR = np.log(float(self.currentWhitePixels)/self.oldWhitePixels)
         self.hourlyRGR = np.log(float(self.currentWhitePixels)/self.oldWhitePixels)/24
 
-    # def graph(self):
-    #     os.chdir("C:/Users/Admin/Downloads")
-    #     data = pd.read_csv("./data.csv",delimiter=", ", header=0)
-    #     pyplot.plot(data['Timestamp'][78:len(data)], data['DailyRGR'][78:len(data)])
-    #     pyplot.xlabel("Time")
-    #     pyplot.ylabel("Daily RGR (New pixels per old pixel per day)")
-    #     pyplot.savefig("test", dpi=300, format="png")
-    #     os.rename("./test", "./test.png")
-
     def cleanup(self):
         fileList = os.listdir("./")
         jpegs = []
