@@ -1,4 +1,4 @@
-# GPEA: A Green Pixel Engine for Analysis (and its derivative, the Eureka Variant)
+# GPEA: A Green Pixel Engine for Analysis (and its derivatives, the \*ureka family)
 
 ## Overview
 
