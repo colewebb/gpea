@@ -4,7 +4,9 @@
 
 The GPEA, GPEureka, and Otsureka algorithms are algorithms designed to measure the 
 growth rate of plants using overhead cameras (a color camera for the GPEA
-algorithm, and an infrared camera for the GPEureka and Otsureka algorithms).
+algorithm, and an infrared camera for the GPEureka and Otsureka algorithms). The
+Otsureka algorithm has been modified for color images, see [Otsureka.py](https://github.com/colewebb/gpea/blob/color/Otsureka.py)
+on the color branch.
 
 Their inner workings are documented in [paper.ipynb](https://github.com/colewebb/gpea/blob/main/paper.ipynb).
 I haven't written up the Otsureka variant yet, but it's the GPEureka algorithm 
