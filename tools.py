@@ -8,7 +8,7 @@ class csvWriter():
         self.path = "./data.csv"
         if not os.path.exists(self.path):
             f = self.fileHandle()
-            self.write(["Timestamp", "Current White Pixels", "Old White Pixels", "Pixel Count Delta", "Daily RGR", "Hourly RGR"])
+            self.write(["Timestamp", "Current Black Pixels", "Old Black Pixels", "Pixel Count Delta", "Daily RGR", "Hourly RGR"])
             f.close()
 
     def fileHandle(self):
