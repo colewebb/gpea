@@ -45,3 +45,13 @@ class config():
 def runner(execute):
     return subprocess.run(execute, shell=True, capture_output=True, text=True)
 
+def pixels2area(plantHeight, pixelCount, xResolution=3280, yResolution=2464):
+    print("This number is for a growth chamber dimensioned 44cm X by 59cm Y.")
+    conversionFactor = ((-174 * plantHeight) + 15416.268)/(xResolution * yResolution)
+    return pixelCount * conversionFactor
+
+def logger(text, time):
+    log = open("./" + time + ".log", 'a')
+    log.write(text)
+    log.close()
+

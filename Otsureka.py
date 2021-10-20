@@ -27,18 +27,12 @@ class otsureka:
         self.currentImage = cv.imread(name)
 
     def analyze(self):
-        self.currentImage = cv.cvtColor(self.currentImage[500:2000, 500:2400], cv.COLOR_BGR2GRAY)
-        self.oldImage = cv.cvtColor(self.oldImage[500:2000, 500:2400], cv.COLOR_BGR2GRAY)
+        self.currentImage = cv.cvtColor(self.currentImage, cv.COLOR_BGR2GRAY)
+        self.oldImage = cv.cvtColor(self.oldImage, cv.COLOR_BGR2GRAY)
         self.currentImage = cv.threshold(self.currentImage, 0, 1, cv.THRESH_OTSU)[1]
         self.oldImage = cv.threshold(self.oldImage, 0, 1, cv.THRESH_OTSU)[1]
-        for i in range(len(self.currentImage)):
-            for j in range(len(self.currentImage[0])):
-                if self.currentImage[i, j] == 1:
-                    self.currentWhitePixels += 1
-        for i in range(len(self.oldImage)):
-            for j in range(len(self.oldImage[0])):
-                if self.oldImage[i, j] == 1:
-                    self.oldWhitePixels += 1
+        self.currentWhitePixels = np.sum(self.currentImage == 1)
+        self.oldWhitePixels = np.sum(self.oldImage == 1)
         self.pixelDelta = self.currentWhitePixels - self.oldWhitePixels
         self.dailyRGR = np.log(float(self.currentWhitePixels)/self.oldWhitePixels)
         self.hourlyRGR = np.log(float(self.currentWhitePixels)/self.oldWhitePixels)/24
