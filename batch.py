@@ -30,29 +30,40 @@ class hsvSegmentation(analyzer):
             return 0
         self.image = cv.cvtColor(self.image, cv.COLOR_RGB2HSV)
         self.image = self.image[:, :, 0]
-        min = 25
-        max = 75
-        # TODO: use cv threshold to optimize
-        for i in range(0, len(self.image)):
-            for j in range(0, len(self.image[0])):
-                if self.image[i, j] > max or self.image[i, j] < min:
-                    self.image[i, j] = 0
-                else:
-                    self.image[i, j] = 255
+        min = 35
+        max = 45
+        self.image = cv.inRange(self.image, min, max)
         interestingPixels = np.sum(self.image == 255)
+        return interestingPixels
+
+# TODO: this is getting the wrong connected component for some reason
+class otsuCC(analyzer):
+    def analyze(self) -> int:
+        if np.mean(self.image) < 20:
+            return 0
+        self.image = cv.cvtColor(self.image, cv.COLOR_RGB2GRAY)
+        self.image = cv.threshold(self.image, 0, 1, cv.THRESH_OTSU)[1]
+        (_, elementLabels, elementStats, _) = cv.connectedComponentsWithStats(self.image, 8)
+        # biggestElementLocation = np.where(elementStats[1:, cv.CC_STAT_AREA] == max(elementStats[1:, cv.CC_STAT_AREA]))
+        # interestingPixels = np.sum(elementLabels == biggestElementLocation)
+        elementLabels = elementLabels[1:]
+        elementStats = elementStats[1:]
+        biggestElementLocation = np.where(elementStats[1:, 4] == max(elementStats[1:, 4]))[0][0] + 2
+        elementLabels[elementLabels != biggestElementLocation] = 0
+        interestingPixels = np.sum(elementLabels != 0)
         return interestingPixels
 
 
 def pairwiseAnalyze(analysisType, imageType) -> None:
     startTime = time()
     f = open("./data.csv", 'w')
-    f.write("OlderImage,NewerImage,OlderInterestingPixels,NewerInterestingPixels\n")
+    f.write("OlderImage,NewerImage,OlderInterestingPixels,NewerInterestingPixels,PixelDelta\n")
     f.flush()
-    # TODO: add f.flush() after every write, save data in case of crash
     fileList = os.listdir("./")
     fileList = [f for f in fileList if f.endswith(imageTypes[imageType]) == True]
+    fileList.sort(key=os.path.getctime)
     imagePairs = 0
-    print("Found " + str(len(fileList)) + " files. Analyzing...")
+    print("Found " + str(len(fileList)) + " files. Estimated " + str(len(fileList) - 24) + " image pairs to analyze. Analyzing...")
     for i in range(0, len(fileList)):
         olderImage = fileList[i]
         olderImage = split("-|\s|_", olderImage[:-4])
@@ -64,18 +75,23 @@ def pairwiseAnalyze(analysisType, imageType) -> None:
         newerImageCV = cv.imread(newerImage)
         if olderImageCV is not None and newerImageCV is not None:
             imagePairs = imagePairs + 1
-            if analysisType == 3:
+            if analysisType == 4:
                 olderInterestingPixels = otsu(olderImage).analyze()
                 newerInterestingPixels = otsu(newerImage).analyze()
+            elif analysisType == 5:
+                olderInterestingPixels = otsuCC(olderImage).analyze()
+                newerInterestingPixels = otsuCC(olderImage).analyze()
             else:
                 olderInterestingPixels = hsvSegmentation(olderImage).analyze()
                 newerInterestingPixels = hsvSegmentation(newerImage).analyze()
-            f.write(olderImage + "," + newerImage + "," + str(olderInterestingPixels) + "," + str(newerInterestingPixels) + "\n")
+            f.write(olderImage + "," + newerImage + "," + str(olderInterestingPixels) + "," + str(newerInterestingPixels) + "," + str(newerInterestingPixels - olderInterestingPixels) + "\n")
             f.flush()
-            print("Image pair #" + str(imagePairs) + " analyzed")
+            if i % 10 == 0 and i > 0:
+                print(str(i) + " image pairs done.")
     f.close()
     elapsedTime = time() - startTime
-    print("Time elapsed: " + str(elapsedTime) + "s")
+    print(str(i) + " image pairs analyzed.")
+    print("Time elapsed: " + str(elapsedTime)[0:6] + "s")
 
 
 def analyze(analysisType, imageType) -> None:
@@ -84,18 +100,25 @@ def analyze(analysisType, imageType) -> None:
     f.write("Filename,InterestingPixels\n")
     fileList = os.listdir("./")
     fileList = [f for f in fileList if f.endswith(imageTypes[imageType]) == True]
+    fileList.sort(key=os.path.getctime)
     print("Found " + str(len(fileList)) + " files. Analyzing...")
     for i in range(0, len(fileList)):
         if analysisType == 1:
             interestingPixels = otsu(fileList[i]).analyze()
-        else:
+        elif analysisType == 2:
+            interestingPixels = otsuCC(fileList[i]).analyze()
+        elif analysisType == 3:
             interestingPixels = hsvSegmentation(fileList[i]).analyze()
+        else:
+            print("That's not a valid option.")
+            return
         f.write(str(fileList[i]) + "," + str(interestingPixels) + str("\n"))
         if i % 10 == 0 and i > 0:
             print(str(i) + " images done.")
     f.close()
     elapsedTime = time() - startTime
-    print("Time elapsed: " + str(elapsedTime) + "s")
+    print(str(i) + " images analyzed")
+    print("Time elapsed: " + str(elapsedTime)[0:6] + "s")
 
 def main() -> None:
     print("Welcome to Cole's Magic Batch Analyzer!")
@@ -108,9 +131,11 @@ def main() -> None:
         return
     print('''What type of analysis is wanted? 
  - Enter 1 for Otsu's Binarization
- - Enter 2 for HSV Segmentation
- - Enter 3 for Pairwise Otsu's Binarization
- - Enter 4 for Pairwise HSV Segmentation''')
+ - Enter 2 for Otsu's Binarization, with connected component cleanup
+ - Enter 3 for HSV Segmentation
+ - Enter 4 for Pairwise Otsu's Binarization
+ - Enter 5 for Pairwise Otsu's Binarization, with connected component cleanup
+ - Enter 6 for Pairwise HSV Segmentation''')
     analysisType = input(" >>> ")
     try:
         analysisType = int(analysisType)
@@ -118,7 +143,7 @@ def main() -> None:
         print("Please enter a number. Exiting...")
         return
     if analysisType > 6 or analysisType < 1:
-        print("Please enter a number between 1 and 6. Now exiting...")
+        print("Please enter a number between 1 and 4. Now exiting...")
         return
     print('''Enter file extension of images:
  - Enter 1 for .jpg
@@ -133,7 +158,7 @@ def main() -> None:
     if imageType > 3 or imageType < 1:
         print("Please enter 1, 2, or 3. Now exiting...")
         return
-    if analysisType > 2:
+    if analysisType > 3:
         pairwiseAnalyze(analysisType, imageType)
     else:
         analyze(analysisType, imageType)
