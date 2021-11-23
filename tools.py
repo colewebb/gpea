@@ -2,6 +2,7 @@ import os
 import datetime
 import subprocess
 import json
+import numpy as np
 
 class csvWriter():
     def __init__(self):
@@ -55,3 +56,8 @@ def logger(text, time):
     log.write(text)
     log.close()
 
+def RGR(firstMeasurement, secondMeasurement, timeDelta=1):
+    try:
+        return float(np.log((secondMeasurement/firstMeasurement)/timeDelta))
+    except ZeroDivisionError:
+        return 0

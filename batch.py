@@ -4,9 +4,15 @@ import numpy as np
 import datetime
 from re import split
 from time import time
+from tools import RGR
 
 imageTypes = ["", ".jpg", ".png", ".tif"]
-
+analysisTypes = {"OTSU": 1,
+    "OTSU_CC": 2,
+    "HSV": 3,
+    "OTSU_PAIRWISE": 4,
+    "OTSU_CC_PAIRWISE": 5,
+    "HSV_PAIRWISE": 6}
 
 class analyzer():
     def __init__(self, imagePath) -> None:
@@ -44,20 +50,17 @@ class otsuCC(analyzer):
         self.image = cv.cvtColor(self.image, cv.COLOR_RGB2GRAY)
         self.image = cv.threshold(self.image, 0, 1, cv.THRESH_OTSU)[1]
         (_, elementLabels, elementStats, _) = cv.connectedComponentsWithStats(self.image, 8)
-        # biggestElementLocation = np.where(elementStats[1:, cv.CC_STAT_AREA] == max(elementStats[1:, cv.CC_STAT_AREA]))
-        # interestingPixels = np.sum(elementLabels == biggestElementLocation)
         elementLabels = elementLabels[1:]
         elementStats = elementStats[1:]
         biggestElementLocation = np.where(elementStats[1:, 4] == max(elementStats[1:, 4]))[0][0] + 2
-        elementLabels[elementLabels != biggestElementLocation] = 0
-        interestingPixels = np.sum(elementLabels != 0)
+        interestingPixels = np.sum(elementLabels == biggestElementLocation)
         return interestingPixels
 
 
 def pairwiseAnalyze(analysisType, imageType) -> None:
     startTime = time()
     f = open("./data.csv", 'w')
-    f.write("OlderImage,NewerImage,OlderInterestingPixels,NewerInterestingPixels,PixelDelta\n")
+    f.write("OlderImage,NewerImage,OlderInterestingPixels,NewerInterestingPixels,PixelDelta,DailyRGR\n")
     f.flush()
     fileList = os.listdir("./")
     fileList = [f for f in fileList if f.endswith(imageTypes[imageType]) == True]
@@ -80,11 +83,11 @@ def pairwiseAnalyze(analysisType, imageType) -> None:
                 newerInterestingPixels = otsu(newerImage).analyze()
             elif analysisType == 5:
                 olderInterestingPixels = otsuCC(olderImage).analyze()
-                newerInterestingPixels = otsuCC(olderImage).analyze()
+                newerInterestingPixels = otsuCC(newerImage).analyze()
             else:
                 olderInterestingPixels = hsvSegmentation(olderImage).analyze()
                 newerInterestingPixels = hsvSegmentation(newerImage).analyze()
-            f.write(olderImage + "," + newerImage + "," + str(olderInterestingPixels) + "," + str(newerInterestingPixels) + "," + str(newerInterestingPixels - olderInterestingPixels) + "\n")
+            f.write(olderImage + "," + newerImage + "," + str(olderInterestingPixels) + "," + str(newerInterestingPixels) + "," + str(newerInterestingPixels - olderInterestingPixels) + "," + str(RGR(olderInterestingPixels, newerInterestingPixels)) + "\n")
             f.flush()
             if i % 10 == 0 and i > 0:
                 print(str(i) + " image pairs done.")
