@@ -14,6 +14,13 @@ analysisTypes = {"OTSU": 1,
     "OTSU_CC_PAIRWISE": 5,
     "HSV_PAIRWISE": 6}
 
+OTSU = 1
+OTSU_CC = 2
+HSV = 3
+OTSU_PAIRWISE = 4
+OTSU_CC_PAIRWISE = 5
+HSV_PAIRWISE = 6
+
 class analyzer():
     def __init__(self, imagePath) -> None:
         self.image = cv.imread(imagePath)
@@ -42,7 +49,6 @@ class hsvSegmentation(analyzer):
         interestingPixels = np.sum(self.image == 255)
         return interestingPixels
 
-# TODO: this is getting the wrong connected component for some reason
 class otsuCC(analyzer):
     def analyze(self) -> int:
         if np.mean(self.image) < 20:
@@ -120,7 +126,7 @@ def analyze(analysisType, imageType) -> None:
             print(str(i) + " images done.")
     f.close()
     elapsedTime = time() - startTime
-    print(str(i) + " images analyzed")
+    print(str(i) + " images analyzed.")
     print("Time elapsed: " + str(elapsedTime)[0:6] + "s")
 
 def main() -> None:
