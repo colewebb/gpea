@@ -3,6 +3,7 @@ import datetime
 import subprocess
 import json
 import numpy as np
+from sys import exit
 
 class csvWriter():
     def __init__(self):
@@ -61,3 +62,15 @@ def RGR(firstMeasurement, secondMeasurement, timeDelta=1):
         return float(np.log((secondMeasurement/firstMeasurement)/timeDelta))
     except ZeroDivisionError:
         return 0
+
+def getInt(prompt=" >>> ", lowerLimit=0, upperLimit=1):
+    number = input(prompt)
+    try:
+        number = int(number)
+    except:
+        print("That is not a number.")
+        exit(1)
+    if number > upperLimit or number < lowerLimit:
+        print("That number is out of range.")
+        exit(1)
+    return number
