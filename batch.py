@@ -20,14 +20,14 @@ OTSU = 1
 HSV = 2
 
 class analyzer():
-    def __init__(self, imagePath, ccc) -> None:
+    def __init__(self, imagePath, ccc, morph) -> None:
         self.image = cv.imread(imagePath)
         self.ccc = ccc
+        self.morph = morph
 
-    def analyze(self, ccc=True) -> int:
+    def analyze(self) -> int:
         return 0
 
-# TODO: integrate morphological cleanup
 class hsvSegmentation(analyzer):
     def analyze(self) -> int:
         if np.mean(self.image) < 20:
@@ -36,18 +36,19 @@ class hsvSegmentation(analyzer):
         self.image = self.image[:, :, 0]
         minLimit = 35
         maxLimit = 50
-        self.image = cv.inRange(self.image, minLimit, maxLimit)
+        self.image = cv.inRange(self.image, minLimit, maxLimit)/255
         if self.ccc is True:
             (_, elementLabels, elementStats, _) = cv.connectedComponentsWithStats(self.image, 8)
             elementLabels = elementLabels[1:]
             elementStats = elementStats[1:]
             biggestElementLocation = np.where(elementStats[1:, 4] == max(elementStats[1:, 4]))[0][0] + 2
             elementLabels[elementLabels != biggestElementLocation] = 0
-            interestingPixels = np.sum(elementLabels != 0)
-            return interestingPixels
-        else:
-            interestingPixels = np.sum(self.image == 255)
-            return interestingPixels
+            self.image = elementLabels/biggestElementLocation
+        if self.morph is True:
+            kernel = np.ones((10, 10), np.uint8)
+            self.image = cv.dilate(cv.erode(self.image, kernel), kernel)
+        interestingPixels = np.sum(self.image == 1)
+        return interestingPixels
 
 class otsu(analyzer):
     def analyze(self) -> int:
@@ -61,13 +62,14 @@ class otsu(analyzer):
             elementStats = elementStats[1:]
             biggestElementLocation = np.where(elementStats[1:, 4] == max(elementStats[1:, 4]))[0][0] + 2
             interestingPixels = np.sum(elementLabels == biggestElementLocation)
-            return interestingPixels
-        else:
-            interestingPixels = np.sum(self.image == 1)
-            return interestingPixels
+            self.image = elementLabels/biggestElementLocation
+        if self.morph is True:
+            kernel = np.ones((10, 10), np.uint8)
+            self.image = cv.dilate(cv.erode(self.image, kernel), kernel)
+        interestingPixels = np.sum(self.image == 1)
+        return interestingPixels
 
-
-def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta) -> None:
+def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph) -> None:
     startTime = time()
     f = open("./data.csv", 'w')
     f.write("OlderImage,NewerImage,OlderInterestingPixels,NewerInterestingPixels,PixelDelta,DailyRGR\n")
@@ -89,11 +91,11 @@ def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta) -> None:
         if olderImageCV is not None and newerImageCV is not None:
             imagePairs = imagePairs + 1
             if analysisType == OTSU:
-                olderInterestingPixels = otsu(olderImage, ccc).analyze()
-                newerInterestingPixels = otsu(newerImage, ccc).analyze()
+                olderInterestingPixels = otsu(olderImage, ccc, morph).analyze()
+                newerInterestingPixels = otsu(newerImage, ccc, morph).analyze()
             elif analysisType == HSV:
-                olderInterestingPixels = hsvSegmentation(olderImage, ccc).analyze()
-                newerInterestingPixels = hsvSegmentation(newerImage, ccc).analyze()
+                olderInterestingPixels = hsvSegmentation(olderImage, ccc, morph).analyze()
+                newerInterestingPixels = hsvSegmentation(newerImage, ccc, morph).analyze()
             else:
                 print("That's not a valid option.")
                 return
@@ -103,11 +105,10 @@ def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta) -> None:
                 print(str(i) + " image pairs done.")
     f.close()
     elapsedTime = time() - startTime
-    print(str(i) + " image pairs analyzed.")
     print("Time elapsed: " + str(elapsedTime)[0:6] + "s")
 
 
-def analyze(analysisType, imageType, ccc) -> None:
+def analyze(analysisType, imageType, ccc, morph) -> None:
     startTime = time()
     f = open("./data.csv", 'w')
     f.write("Filename,InterestingPixels\n")
@@ -117,9 +118,9 @@ def analyze(analysisType, imageType, ccc) -> None:
     print("Found " + str(len(fileList)) + " files. Analyzing...")
     for i in range(0, len(fileList)):
         if analysisType == OTSU:
-            interestingPixels = otsu(fileList[i], ccc).analyze()
+            interestingPixels = otsu(fileList[i], ccc, morph).analyze()
         elif analysisType == HSV:
-            interestingPixels = hsvSegmentation(fileList[i], ccc).analyze()
+            interestingPixels = hsvSegmentation(fileList[i], ccc, morph).analyze()
         else:
             print("That's not a valid option.")
             return
@@ -148,6 +149,12 @@ def main() -> None:
  - Enter 1 for yes
  - Enter 0 for no''')
     ccc = bool(getInt())
+    morph = False
+    if analysisType == HSV:
+        print('''Is morphological cleanup wanted?
+ - Enter 1 for yes
+ - Enter 0 for no''')
+        morph = bool(getInt())
     print('''Is pairwise analysis wanted?
  - Enter 1 for yes
  - Enter 0 for no''')
@@ -157,18 +164,18 @@ def main() -> None:
         minuteDelta = getInt(upperLimit=59)
         print("How many hours (0-23) in the image delta?")
         hourDelta = getInt(upperLimit=23)
-        print("How many days (0-31) in the pixel delta?")
-        dayDelta = getInt(upperLimit=31)
-    timeDelta = datetime.timedelta(minutes=minuteDelta, hours=hourDelta, days=dayDelta)
+        print("How many days (0-365) in the pixel delta?")
+        dayDelta = getInt(upperLimit=365)
+        timeDelta = datetime.timedelta(minutes=minuteDelta, hours=hourDelta, days=dayDelta)
     print('''Enter file extension of images:
  - Enter 1 for .jpg
  - Enter 2 for .png
  - Enter 3 for .tif''')
     imageType = getInt(lowerLimit=1, upperLimit=3)
     if pairwise:
-        pairwiseAnalyze(analysisType, imageType, ccc, timeDelta)
+        pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph)
     else:
-        analyze(analysisType, imageType, ccc)
+        analyze(analysisType, imageType, ccc, morph)
 
 
 if __name__ == "__main__":
