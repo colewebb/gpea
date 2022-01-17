@@ -22,11 +22,18 @@ analysisTypes = {"OTSU": 1,
 OTSU = 1
 HSV = 2
 
+def imageWrite(path, image):
+    modPath = path.rsplit(".", 1)
+    modPath = modPath[0] + "_ANALYZED." + modPath[1]
+    cv.imwrite(modPath, image * 255)
+
 class analyzer():
-    def __init__(self, imagePath, ccc, morph) -> None:
+    def __init__(self, imagePath, ccc, morph, saveAnalyzed) -> None:
+        self.imagePath = imagePath
         self.image = cv.imread(imagePath)
         self.ccc = ccc
         self.morph = morph
+        self.saveAnalyzed = saveAnalyzed
 
     def analyze(self) -> int:
         return 0
@@ -50,6 +57,8 @@ class hsvSegmentation(analyzer):
         if self.morph is True:
             kernel = np.ones((10, 10), np.uint8)
             self.image = cv.dilate(cv.erode(self.image, kernel), kernel)
+        if self.saveAnalyzed is True:
+            imageWrite(self.imagePath, self.image)
         interestingPixels = np.sum(self.image == 1)
         return interestingPixels
 
@@ -69,16 +78,19 @@ class otsu(analyzer):
         if self.morph is True:
             kernel = np.ones((10, 10), np.uint8)
             self.image = cv.dilate(cv.erode(self.image, kernel), kernel)
+        if self.saveAnalyzed is True:
+            imageWrite(self.imagePath, self.image)
         interestingPixels = np.sum(self.image == 1)
         return interestingPixels
 
-def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph) -> None:
+def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph, saveAnalyzed) -> None:
     startTime = time()
     f = open("./data.csv", 'w')
     f.write("OlderImage,NewerImage,OlderInterestingPixels,NewerInterestingPixels,PixelDelta,DailyRGR\n")
     f.flush()
     fileList = os.listdir("./")
     fileList = [f for f in fileList if f.endswith(imageTypes[imageType]) == True]
+    fileList = [f for f in fileList if f.endswith("ANALYZED." + imageTypes[imageType]) == False]
     fileList.sort(key=os.path.getctime)
     imagePairs = 0
     print("Found " + str(len(fileList)) + " files. Analyzing...")
@@ -94,11 +106,11 @@ def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph) -> None:
         if olderImageCV is not None and newerImageCV is not None:
             imagePairs = imagePairs + 1
             if analysisType == OTSU:
-                olderInterestingPixels = otsu(olderImage, ccc, morph).analyze()
-                newerInterestingPixels = otsu(newerImage, ccc, morph).analyze()
+                olderInterestingPixels = otsu(olderImage, ccc, morph, saveAnalyzed).analyze()
+                newerInterestingPixels = otsu(newerImage, ccc, morph, saveAnalyzed).analyze()
             elif analysisType == HSV:
-                olderInterestingPixels = hsvSegmentation(olderImage, ccc, morph).analyze()
-                newerInterestingPixels = hsvSegmentation(newerImage, ccc, morph).analyze()
+                olderInterestingPixels = hsvSegmentation(olderImage, ccc, morph, saveAnalyzed).analyze()
+                newerInterestingPixels = hsvSegmentation(newerImage, ccc, morph, saveAnalyzed).analyze()
             else:
                 print("That's not a valid option.")
                 return
@@ -111,19 +123,20 @@ def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph) -> None:
     print("Time elapsed: " + str(elapsedTime)[0:6] + "s")
 
 
-def analyze(analysisType, imageType, ccc, morph) -> None:
+def analyze(analysisType, imageType, ccc, morph, saveAnalyzed) -> None:
     startTime = time()
     f = open("./data.csv", 'w')
     f.write("Filename,InterestingPixels\n")
     fileList = os.listdir("./")
     fileList = [f for f in fileList if f.endswith(imageTypes[imageType]) == True]
+    fileList = [f for f in fileList if f.endswith("ANALYZED." + imageTypes[imageType]) == False]
     fileList.sort(key=os.path.getctime)
     print("Found " + str(len(fileList)) + " files. Analyzing...")
     for i in range(0, len(fileList)):
         if analysisType == OTSU:
-            interestingPixels = otsu(fileList[i], ccc, morph).analyze()
+            interestingPixels = otsu(fileList[i], ccc, morph, saveAnalyzed).analyze()
         elif analysisType == HSV:
-            interestingPixels = hsvSegmentation(fileList[i], ccc, morph).analyze()
+            interestingPixels = hsvSegmentation(fileList[i], ccc, morph, saveAnalyzed).analyze()
         else:
             print("That's not a valid option.")
             return
@@ -175,10 +188,15 @@ def main() -> None:
  - Enter 2 for .png
  - Enter 3 for .tif''')
     imageType = getInt(lowerLimit=1, upperLimit=3)
+    saveAnalyzed = False
+    print('''Is analyzed image saving wanted?
+ - Enter 1 for yes
+ - Enter 0 for no''')
+    saveAnalyzed = bool(getInt())
     if pairwise:
-        pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph)
+        pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph, saveAnalyzed)
     else:
-        analyze(analysisType, imageType, ccc, morph)
+        analyze(analysisType, imageType, ccc, morph, saveAnalyzed)
 
 
 if __name__ == "__main__":
