@@ -4,6 +4,7 @@ import subprocess
 import json
 import numpy as np
 from sys import exit
+import pandas as pd
 
 class csvWriter():
     def __init__(self):
@@ -74,3 +75,19 @@ def getInt(prompt=" >>> ", lowerLimit=0, upperLimit=1):
         print("That number is out of range.")
         exit(1)
     return number
+
+def rollingAverage(n, data):
+    return np.convolve(data, np.ones(n), 'valid')/n
+
+def interpolate(data):
+    """Returns a linearly interpolated 1D
+    list of data, replacing any zeros with
+    interpolated points.
+    
+    Will also interpolate NaN values.
+    
+    Takes a 1D list of values."""
+    data = pd.DataFrame([f if f != 0 else None for f in data])
+    data = data.interpolate()
+    data = data.values.tolist()
+    return [i[0] for i in data]

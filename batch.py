@@ -7,7 +7,7 @@ from time import time
 from tools import RGR, getInt
 
 # TODO: Consider estimating remaining time during analysis
-# TODO: Interpolate missing nighttime data (linear should be fine, needs a df)
+# TODO: Implement interpolation from analysis.ipynb or tools.py
 #   - https://www.analyticsvidhya.com/blog/2021/06/power-of-interpolation-in-python-to-fill-missing-values/
 #   - https://sparrow.dev/numpy-interpolate/
 
