@@ -8,8 +8,6 @@ from tools import RGR, getInt
 
 # TODO: Consider estimating remaining time during analysis
 # TODO: Implement interpolation from analysis.ipynb or tools.py
-#   - https://www.analyticsvidhya.com/blog/2021/06/power-of-interpolation-in-python-to-fill-missing-values/
-#   - https://sparrow.dev/numpy-interpolate/
 
 imageTypes = ["", ".jpg", ".png", ".tif"]
 analysisTypes = {"OTSU": 1,
@@ -39,27 +37,35 @@ class analyzer():
         return 0
 
 class hsvSegmentation(analyzer):
-    def analyze(self) -> int:
+    def analyze(self, bottom=35, top=50) -> int:
         if np.mean(self.image) < 20:
             return 0
+        if bottom >= top:
+            raise Exception("Bottom limit must be less than top limit")
         self.image = cv.cvtColor(self.image, cv.COLOR_RGB2HSV)
         self.image = self.image[:, :, 0]
-        minLimit = 35
-        maxLimit = 50
-        self.image = cv.inRange(self.image, minLimit, maxLimit)/255
+        self.image = cv.inRange(self.image, bottom, top)/255
+        self.image = self.image.astype(np.uint8)
         if self.ccc is True:
             (_, elementLabels, elementStats, _) = cv.connectedComponentsWithStats(self.image, 8)
             elementLabels = elementLabels[1:]
             elementStats = elementStats[1:]
-            biggestElementLocation = np.where(elementStats[1:, 4] == max(elementStats[1:, 4]))[0][0] + 2
-            elementLabels[elementLabels != biggestElementLocation] = 0
-            self.image = elementLabels/biggestElementLocation
+            if len(elementStats) != 0:
+                biggestElementLocation = np.where(elementStats[1:, 4] == max(elementStats[1:, 4]))[0][0] + 2
+                elementLabels[elementLabels != biggestElementLocation] = 0
+                self.image = elementLabels/biggestElementLocation
+            else:
+                self.ccc = False
         if self.morph is True:
             kernel = np.ones((10, 10), np.uint8)
             self.image = cv.dilate(cv.erode(self.image, kernel), kernel)
         if self.saveAnalyzed is True:
-            imageWrite(self.imagePath, self.image)
-        interestingPixels = np.sum(self.image == 1)
+            if self.ccc is True:
+                elementLabels[elementLabels != biggestElementLocation] = 0
+                imageWrite(self.imagePath, elementLabels)
+            else:
+                imageWrite(self.imagePath, self.image)
+        interestingPixels = np.sum(self.image != 0)
         return interestingPixels
 
 class otsu(analyzer):
@@ -79,11 +85,15 @@ class otsu(analyzer):
             kernel = np.ones((10, 10), np.uint8)
             self.image = cv.dilate(cv.erode(self.image, kernel), kernel)
         if self.saveAnalyzed is True:
-            imageWrite(self.imagePath, self.image)
+            if self.ccc is True:
+                elementLabels[elementLabels != biggestElementLocation] = 0
+                imageWrite(self.imagePath, elementLabels)
+            else:
+                imageWrite(self.imagePath, self.image)
         interestingPixels = np.sum(self.image == 1)
         return interestingPixels
 
-def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph, saveAnalyzed) -> None:
+def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph, saveAnalyzed, bottom, top) -> None:
     startTime = time()
     f = open("./data.csv", 'w')
     f.write("OlderImage,NewerImage,OlderInterestingPixels,NewerInterestingPixels,PixelDelta,DailyRGR\n")
@@ -108,9 +118,12 @@ def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph, saveAnalyzed
             if analysisType == OTSU:
                 olderInterestingPixels = otsu(olderImage, ccc, morph, saveAnalyzed).analyze()
                 newerInterestingPixels = otsu(newerImage, ccc, morph, saveAnalyzed).analyze()
-            elif analysisType == HSV:
+            elif analysisType == HSV and bottom is None and top is None:
                 olderInterestingPixels = hsvSegmentation(olderImage, ccc, morph, saveAnalyzed).analyze()
                 newerInterestingPixels = hsvSegmentation(newerImage, ccc, morph, saveAnalyzed).analyze()
+            elif analysisType == HSV and bottom is not None and top is not None:
+                olderInterestingPixels = hsvSegmentation(olderImage, ccc, morph, saveAnalyzed).analyze(bottom, top)
+                newerInterestingPixels = hsvSegmentation(newerImage, ccc, morph, saveAnalyzed).analyze(bottom, top)
             else:
                 print("That's not a valid option.")
                 return
@@ -123,7 +136,7 @@ def pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph, saveAnalyzed
     print("Time elapsed: " + str(elapsedTime)[0:6] + "s")
 
 
-def analyze(analysisType, imageType, ccc, morph, saveAnalyzed) -> None:
+def analyze(analysisType, imageType, ccc, morph, saveAnalyzed, bottom, top) -> None:
     startTime = time()
     f = open("./data.csv", 'w')
     f.write("Filename,InterestingPixels\n")
@@ -135,8 +148,10 @@ def analyze(analysisType, imageType, ccc, morph, saveAnalyzed) -> None:
     for i in range(0, len(fileList)):
         if analysisType == OTSU:
             interestingPixels = otsu(fileList[i], ccc, morph, saveAnalyzed).analyze()
-        elif analysisType == HSV:
+        elif analysisType == HSV and bottom is None and top is None:
             interestingPixels = hsvSegmentation(fileList[i], ccc, morph, saveAnalyzed).analyze()
+        elif analysisType == HSV and bottom is not None and top is not None:
+            interestingPixels = hsvSegmentation(fileList[i], ccc, morph, saveAnalyzed).analyze(bottom, top)
         else:
             print("That's not a valid option.")
             return
@@ -166,11 +181,10 @@ def main() -> None:
  - Enter 0 for no''')
     ccc = bool(getInt())
     morph = False
-    if analysisType == HSV:
-        print('''Is morphological cleanup wanted?
+    print('''Is morphological cleanup wanted?
  - Enter 1 for yes
  - Enter 0 for no''')
-        morph = bool(getInt())
+    morph = bool(getInt())
     print('''Is pairwise analysis wanted?
  - Enter 1 for yes
  - Enter 0 for no''')
@@ -193,10 +207,22 @@ def main() -> None:
  - Enter 1 for yes
  - Enter 0 for no''')
     saveAnalyzed = bool(getInt())
+    bottom = None
+    top = None
+    if analysisType == 2:
+        print('''Do you want to provide custom boundaries for the HSV segmentation?
+ - Enter 1 for yes
+ - Enter 0 for no''')
+        customLimits = bool(getInt())
+        if customLimits:
+            print("Enter bottom limit (0-178):")
+            bottom = getInt(upperLimit=178)
+            print("Enter top limit:")
+            top = getInt(lowerLimit=bottom, upperLimit=179)
     if pairwise:
-        pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph, saveAnalyzed)
+        pairwiseAnalyze(analysisType, imageType, ccc, timeDelta, morph, saveAnalyzed, bottom, top)
     else:
-        analyze(analysisType, imageType, ccc, morph, saveAnalyzed)
+        analyze(analysisType, imageType, ccc, morph, saveAnalyzed, bottom, top)
 
 
 if __name__ == "__main__":
