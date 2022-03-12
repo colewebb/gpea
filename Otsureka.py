@@ -22,7 +22,7 @@ class otsureka:
         self.time = datetime.datetime.now()
 
     def capture(self):
-        name = str(self.time.month) + "-" + str(self.time.day) + "-" + str(self.time.year) + " " + str(self.time.hour) + ":" + str(self.time.minute) + ".png"
+        name = str(self.time.month) + "-" + str(self.time.day) + "-" + str(self.time.year) + " " + str(self.time.hour) + "_" + str(self.time.minute) + ".png"
         runner("raspistill -br 50 -o '" + name + "'")
         self.currentImage = cv.imread(name)
 
