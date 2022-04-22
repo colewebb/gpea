@@ -10,3 +10,4 @@ __pycache__
 pictures
 *.iml
 .idea/
+*.IRR
